@@ -25,7 +25,6 @@ OUTPUT_PATH = DATA_DIR / "news.csv"
 
 # RSS Feed sources (Bahasa Indonesia)
 RSS_FEEDS = {
-    # Kompas.com: RSS langsung sudah tidak aktif, gunakan Google News RSS sebagai pengganti
     "Kompas.com": [
         "https://news.google.com/rss/search?q=site:kompas.com+nasional&hl=id&gl=ID&ceid=ID:id",
         "https://news.google.com/rss/search?q=site:kompas.com+ekonomi&hl=id&gl=ID&ceid=ID:id",
@@ -43,7 +42,6 @@ RSS_FEEDS = {
         "https://www.cnnindonesia.com/internasional/rss",
         "https://www.cnnindonesia.com/gaya-hidup/rss",
     ],
-    # Antara News: ekstensi berubah dari .rss menjadi .xml
     "Antara News": [
         "https://www.antaranews.com/rss/terkini.xml",
         "https://www.antaranews.com/rss/top-news.xml",
@@ -54,7 +52,6 @@ RSS_FEEDS = {
         "https://www.antaranews.com/rss/humaniora.xml",
         "https://www.antaranews.com/rss/tekno.xml",
     ],
-    # Tribun News: hanya main feed yang aktif, kategori individual sudah 404
     "Tribun News": [
         "https://www.tribunnews.com/rss",
     ],
@@ -70,7 +67,7 @@ RSS_FEEDS = {
         "https://rss.tempo.co/bisnis",
         "https://rss.tempo.co/dunia",
         "https://rss.tempo.co/olahraga",
-        "https://rss.tempo.co/gaya-hidup",  # Diperbaiki: gaya_hidup -> gaya-hidup
+        "https://rss.tempo.co/gaya-hidup",  
         "https://rss.tempo.co/otomotif",
     ],
 }
