@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NewsSearch.id — Mesin Pencari Berita Indonesia</title>
+  <meta name="description" content="Sistem temu kembali informasi berita Indonesia menggunakan TF-IDF dan BM25. Cari berita terbaru dari berbagai sumber terpercaya." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+
+<!-- ===== BACKGROUND DECORATION ===== -->
+<div class="bg-orbs" aria-hidden="true">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+
+<!-- ===== HEADER ===== -->
+<header class="site-header" id="site-header">
+  <div class="header-inner">
+    <a href="/" class="logo" id="logo-link">
+      <span class="logo-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="url(#logo-grad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#6366f1" /><stop offset="50%" stop-color="#8b5cf6" /><stop offset="100%" stop-color="#06b6d4" /></linearGradient></defs><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>
+      <span class="logo-text">NewsSearch<span class="logo-accent">.id</span></span>
+    </a>
+    <div class="header-meta">
+      <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Dark/Light Mode">
+        <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+        <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+      </button>
+      <span class="doc-count" id="doc-count-header">
+        <span class="pulse-dot"></span>
+        {{ stats.total_documents | default(0) }} artikel terindeks
+      </span>
+    </div>
+  </div>
+</header>
+
+<!-- ===== HERO SECTION ===== -->
+<main>
+  <section class="hero" id="hero-section">
+    <div class="hero-content">
+      <h1 class="hero-title">Cari Berita Indonesia<br/><span class="gradient-text">dengan Kecerdasan</span></h1>
+      <p class="hero-subtitle">
+        Sistem Temu Kembali Informasi untuk Pencarian Judul Berita Menggunakan TF-IDF dan Cosine Similarity yang mengindeks
+        <strong>{{ stats.total_documents | default(0) }}</strong>+ berita terbaru
+        dari {{ stats.sources.keys() | list | length }} sumber terpercaya.
+      </p>
+
+      <!-- ===== SEARCH BOX ===== -->
+      <div class="search-container" id="search-container">
+        <form class="search-form" id="search-form" autocomplete="off">
+          <div class="search-box" role="search">
+            <span class="search-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              </svg>
+            </span>
+            <input
+              type="search"
+              id="search-input"
+              name="q"
+              class="search-input"
+              placeholder="Cari judul berita... (contoh: banjir jakarta)"
+              aria-label="Masukkan kata kunci pencarian"
+              autofocus
+              spellcheck="false"
+            />
+            <button type="submit" class="search-btn" id="search-btn" aria-label="Cari">
+              <span class="btn-text">Cari</span>
+              <span class="btn-loader" aria-hidden="true"></span>
+            </button>
+          </div>
+
+          <!-- Filter Row -->
+          <div class="filter-row">
+            <div class="filter-group">
+              <label class="filter-label" for="method-select">Metode:</label>
+              <select id="method-select" name="method" class="filter-select">
+                <option value="combined" selected>Gabungan (TF-IDF + BM25)</option>
+                <option value="tfidf">TF-IDF + Cosine</option>
+                <option value="bm25">BM25 Okapi</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label" for="topn-select">Hasil per halaman:</label>
+              <select id="topn-select" name="top_n" class="filter-select">
+                <option value="5">5</option>
+                <option value="10" selected>10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+              </select>
+            </div>
+          </div>
+        </form>
+
+          <div class="team-badge">
+            <span class="team-title">Nama Kelompok</span>
+            <div class="team-members">
+              <p>1. Ahmad Hadi Nuryani <span>24-135</span></p>
+              <p>2. Ahmad Dafi Zidni Alfarisi <span>24-027</span></p>
+              <p>3. Iman Wahyudy <span>24-070</span></p>
+            </div>
+          </div>
+       
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== RESULTS SECTION ===== -->
+  <section class="results-section" id="results-section" hidden>
+    <div class="results-container">
+
+      <!-- Results Header -->
+      <div class="results-header" id="results-header">
+        <div class="results-meta">
+          <h2 class="results-title" id="results-title"></h2>
+          <span class="results-time" id="results-time"></span>
+        </div>
+        <div class="results-controls">
+          <div class="method-badges" id="method-badges"></div>
+          <button class="btn-back" id="btn-back" aria-label="Kembali ke halaman utama">
+            ← Cari Lagi
+          </button>
+        </div>
+      </div>
+
+      <!-- Error State -->
+      <div class="error-state" id="error-state" hidden>
+        <div class="error-icon"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>
+        <p class="error-message" id="error-message">Terjadi kesalahan.</p>
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-state" id="empty-state" hidden>
+        <div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>
+        <h3>Tidak ada hasil ditemukan</h3>
+        <p>Coba gunakan kata kunci yang berbeda atau lebih umum.</p>
+      </div>
+
+      <!-- Results List -->
+      <div class="results-list" id="results-list" role="list"></div>
+
+      <!-- Pagination -->
+      <nav class="pagination" id="pagination" aria-label="Navigasi halaman hasil pencarian"></nav>
+
+    </div>
+  </section>
+
+  <!-- ===== STATS SECTION ===== -->
+  <section class="stats-section" id="stats-section">
+    <div class="stats-container">
+      <h2 class="stats-title">Statistik Sistem</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"></path><path d="M18 14h-8"></path><path d="M15 18h-5"></path><path d="M10 6h8v4h-8V6Z"></path></svg></div>
+          <div class="stat-value" id="stat-total">{{ stats.total_documents | default(0) }}</div>
+          <div class="stat-label">Total Artikel</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></div>
+          <div class="stat-value" id="stat-sources">{{ stats.sources.keys() | list | length }}</div>
+          <div class="stat-label">Sumber Berita</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"></path><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"></path></svg></div>
+          <div class="stat-value">2</div>
+          <div class="stat-label">Model IR Aktif</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></div>
+          <div class="stat-value">&lt;100ms</div>
+          <div class="stat-label">Waktu Pencarian</div>
+        </div>
+      </div>
+
+      {% if stats.sources %}
+      <div class="source-list">
+        <h3 class="source-list-title">Sumber Terindeks</h3>
+        <div class="source-chips">
+          {% for source, count in stats.sources.items() %}
+          <div class="source-chip">
+            <span class="source-name">{{ source }}</span>
+            <span class="source-count">{{ count }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- ===== HOW IT WORKS ===== -->
+  <section class="how-section">
+    <div class="how-container">
+      <h2 class="how-title">Bagaimana Cara Kerjanya?</h2>
+      <div class="pipeline-steps">
+        <div class="pipeline-step">
+          <div class="step-number">01</div>
+          <div class="step-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></div>
+          <h3>Pengambilan Data</h3>
+          <p>Mengambil berita terbaru dari RSS Feed Kompas, CNN Indonesia, Detik, Liputan6, Antara News</p>
+        </div>
+        <div class="pipeline-arrow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></div>
+        <div class="pipeline-step">
+          <div class="step-number">02</div>
+          <div class="step-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg></div>
+          <h3>Preprocessing</h3>
+          <p>Case folding, tokenisasi, hapus stopword, dan stemming menggunakan PySastrawi</p>
+        </div>
+        <div class="pipeline-arrow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></div>
+        <div class="pipeline-step">
+          <div class="step-number">03</div>
+          <div class="step-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></div>
+          <h3>Vectorisasi</h3>
+          <p>TF-IDF Vectorizer dan BM25Okapi mengubah dokumen menjadi representasi numerik</p>
+        </div>
+        <div class="pipeline-arrow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></div>
+        <div class="pipeline-step">
+          <div class="step-number">04</div>
+          <div class="step-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg></div>
+          <h3>Ranking</h3>
+          <p>Cosine Similarity + BM25 digabungkan untuk menghasilkan ranking paling relevan</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ===== FOOTER ===== -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <p>
+      <strong>NewsSearch.id</strong> — Information Retrieval System
+      menggunakan TF-IDF &amp; BM25
+    </p>
+    <p class="footer-tech">
+      Python · Flask · scikit-learn · PySastrawi · rank-bm25
+    </p>
+  </div>
+</footer>
+
+<!-- ===== RESULT CARD TEMPLATE ===== -->
+<template id="result-card-template">
+  <article class="result-card" role="listitem">
+    <div class="result-rank-badge">
+      <span class="rank-number"></span>
+    </div>
+    <div class="result-body">
+      <div class="result-meta-top">
+        <span class="result-source"></span>
+        <span class="result-date"></span>
+      </div>
+      <h3 class="result-title">
+        <a class="result-link" href="#" target="_blank" rel="noopener noreferrer"></a>
+      </h3>
+      <p class="result-snippet"></p>
+      <div class="result-scores">
+        <div class="score-group score-final">
+          <span class="score-label">Skor Akhir</span>
+          <span class="score-value score-final-val"></span>
+          <div class="score-bar">
+            <div class="score-bar-fill score-bar-final"></div>
+          </div>
+        </div>
+        <div class="score-group score-tfidf">
+          <span class="score-label">TF-IDF</span>
+          <span class="score-value score-tfidf-val"></span>
+          <div class="score-bar">
+            <div class="score-bar-fill score-bar-tfidf"></div>
+          </div>
+        </div>
+        <div class="score-group score-bm25">
+          <span class="score-label">BM25</span>
+          <span class="score-value score-bm25-val"></span>
+          <div class="score-bar">
+            <div class="score-bar-fill score-bar-bm25"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>
+</template>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
